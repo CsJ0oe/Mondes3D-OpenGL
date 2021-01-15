@@ -83,7 +83,10 @@ void Mesh::draw(const Shader &shd)
     glVertexAttribPointer(normal_loc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(Vector3f));
     glEnableVertexAttribArray(normal_loc);
   }
+  // 4 - Tracer les triangles
+  glDrawElements(GL_TRIANGLES, 3*mFaces.size(), GL_UNSIGNED_INT, 0);
 
+  // 5 - deactivate this stream of vertex attribute
   glDisableVertexAttribArray(vertex_loc);
   if(normal_loc>=0) glDisableVertexAttribArray(normal_loc);
 
