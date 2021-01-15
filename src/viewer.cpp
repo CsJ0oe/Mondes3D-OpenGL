@@ -19,7 +19,7 @@ Viewer::~Viewer()
 void Viewer::init(int w, int h){
     loadShaders();
 
-    if(!_mesh.load(DATA_DIR"/models/test.off")) exit(1);
+    if(!_mesh.load(DATA_DIR"/models/monkey.obj")) exit(1);
     _mesh.initVBA();
 
     reshape(w,h);
@@ -39,6 +39,9 @@ void Viewer::reshape(int w, int h){
  */
 void Viewer::drawScene()
 {
+    // TODO TOCHECK
+    glClearColor(.6f, .6f, .6f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
     _shader.activate();
     _mesh.draw(_shader);
     _shader.deactivate();
