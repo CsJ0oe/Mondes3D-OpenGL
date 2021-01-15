@@ -36,6 +36,8 @@ private:
     Shader _shader;
     Mesh   _mesh;
 
+    float   _zoom;
+    Eigen::Vector2f _trans;
 
     // Mouse parameters for the trackball
     enum TrackMode

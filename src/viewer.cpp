@@ -4,7 +4,7 @@
 using namespace Eigen;
 
 Viewer::Viewer()
-  : _winWidth(0), _winHeight(0)
+  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.)
 {
 }
 
@@ -21,6 +21,13 @@ void Viewer::init(int w, int h){
 
     if(!_mesh.load(DATA_DIR"/models/lemming.off")) exit(1);
     _mesh.initVBA();
+
+    // clear screen TODO TOCHECK
+    glClearColor(.6, .6, .6, 1.);
+    // z-depth TODO TOCHECK LOCATION
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glClearDepth(1.);
 
     reshape(w,h);
     _trackball.setCamera(&_cam);
@@ -39,16 +46,18 @@ void Viewer::reshape(int w, int h){
  */
 void Viewer::drawScene()
 {
-    // TODO TOCHECK
-    glClearColor(.6f, .6f, .6f, 1.0f);
+    // clear screen TODO TOCHECK
     glClear(GL_COLOR_BUFFER_BIT);
-    // TODO TOCHECK LOCATION
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glClearDepth(1.0f);
+    // z-depth clear TODO TOCHECK LOCATION
     glClear(GL_DEPTH_BUFFER_BIT);
+    // Activate shader
     _shader.activate();
+    // Uniforms
+    glUniform1f(_shader.getUniformLocation("zoom"),  _zoom);
+    glUniform2f(_shader.getUniformLocation("trans"), _trans.x(), _trans.y());
+    // Draw mesh
     _mesh.draw(_shader);
+    // Deactivate shader
     _shader.deactivate();
 }
 
@@ -84,21 +93,27 @@ void Viewer::keyPressed(int key, int action, int /*mods*/)
   {
     if (key==GLFW_KEY_UP)
     {
+        _trans -= Vector2f(0., .1);
     }
     else if (key==GLFW_KEY_DOWN)
     {
+        _trans += Vector2f(0., .1);
     }
     else if (key==GLFW_KEY_LEFT)
     {
+        _trans += Vector2f(.1, 0.);
     }
     else if (key==GLFW_KEY_RIGHT)
     {
+        _trans -= Vector2f(.1, 0.);
     }
     else if (key==GLFW_KEY_PAGE_UP)
     {
+        _zoom *= 1.1;
     }
     else if (key==GLFW_KEY_PAGE_DOWN)
     {
+        _zoom /= 1.1;
     }
   }
 }
