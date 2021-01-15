@@ -4,7 +4,7 @@
 using namespace Eigen;
 
 Viewer::Viewer()
-  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.)
+  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.), _mode(0), _modeEnable(false)
 {
 }
 
@@ -22,12 +22,14 @@ void Viewer::init(int w, int h){
     if(!_mesh.load(DATA_DIR"/models/lemming.off")) exit(1);
     _mesh.initVBA();
 
-    // clear screen TODO TOCHECK
+    // clear color TODO TOCHECK
     glClearColor(.6, .6, .6, 1.);
     // z-depth TODO TOCHECK LOCATION
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
     glClearDepth(1.);
+    // Lines antialiasing
+    glEnable(GL_LINE_SMOOTH);
 
     reshape(w,h);
     _trackball.setCamera(&_cam);
@@ -46,15 +48,15 @@ void Viewer::reshape(int w, int h){
  */
 void Viewer::drawScene()
 {
-    // clear screen TODO TOCHECK
-    glClear(GL_COLOR_BUFFER_BIT);
-    // z-depth clear TODO TOCHECK LOCATION
-    glClear(GL_DEPTH_BUFFER_BIT);
+    // visualiser le maillage
+    if (_mode == 0) glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+    else            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
     // Activate shader
     _shader.activate();
     // Uniforms
     glUniform1f(_shader.getUniformLocation("zoom"),  _zoom);
     glUniform2f(_shader.getUniformLocation("trans"), _trans.x(), _trans.y());
+    glUniform1i(_shader.getUniformLocation("mode"),  _mode);
     // Draw mesh
     _mesh.draw(_shader);
     // Deactivate shader
@@ -64,7 +66,16 @@ void Viewer::drawScene()
 
 void Viewer::updateAndDrawScene()
 {
+    // clear screen TODO TOCHECK
+    glClear(GL_COLOR_BUFFER_BIT);
+    // z-depth clear TODO TOCHECK LOCATION
+    glClear(GL_DEPTH_BUFFER_BIT);
+    _mode = 0;
     drawScene();
+    if (_modeEnable) {
+        _mode = 1;
+        drawScene();
+    }
 }
 
 void Viewer::loadShaders()
@@ -114,6 +125,10 @@ void Viewer::keyPressed(int key, int action, int /*mods*/)
     else if (key==GLFW_KEY_PAGE_DOWN)
     {
         _zoom /= 1.1;
+    }
+    else if (key==GLFW_KEY_L)
+    {
+        _modeEnable = !_modeEnable;
     }
   }
 }
