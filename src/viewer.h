@@ -40,6 +40,7 @@ private:
     Eigen::Vector2f _trans;
     int    _mode;
     bool   _modeEnable;
+    int    _view;
 
     // Mouse parameters for the trackball
     enum TrackMode

@@ -4,7 +4,7 @@
 using namespace Eigen;
 
 Viewer::Viewer()
-  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.), _mode(0), _modeEnable(false)
+  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.), _mode(0), _modeEnable(false), _view(0)
 {
 }
 
@@ -39,7 +39,6 @@ void Viewer::reshape(int w, int h){
     _winWidth = w;
     _winHeight = h;
     _cam.setViewport(w,h);
-    glViewport(0, 0, _winWidth, _winHeight);
 }
 
 
@@ -48,6 +47,9 @@ void Viewer::reshape(int w, int h){
  */
 void Viewer::drawScene()
 {
+    // change view port
+    if (_view == 0) glViewport(0, 0, _winWidth/2, _winHeight);
+    else            glViewport(_winWidth/2, 0, _winWidth/2, _winHeight);
     // visualiser le maillage
     if (_mode == 0) glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
     else            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
@@ -57,6 +59,7 @@ void Viewer::drawScene()
     glUniform1f(_shader.getUniformLocation("zoom"),  _zoom);
     glUniform2f(_shader.getUniformLocation("trans"), _trans.x(), _trans.y());
     glUniform1i(_shader.getUniformLocation("mode"),  _mode);
+    glUniform1i(_shader.getUniformLocation("view"),  _view);
     // Draw mesh
     _mesh.draw(_shader);
     // Deactivate shader
@@ -70,9 +73,25 @@ void Viewer::updateAndDrawScene()
     glClear(GL_COLOR_BUFFER_BIT);
     // z-depth clear TODO TOCHECK LOCATION
     glClear(GL_DEPTH_BUFFER_BIT);
+
+    // change view port
+    _view = 0;
+    // render mesh
     _mode = 0;
     drawScene();
     if (_modeEnable) {
+        // render lines
+        _mode = 1;
+        drawScene();
+    }
+
+    // change view port
+    _view = 1;
+    // render mesh
+    _mode = 0;
+    drawScene();
+    if (_modeEnable) {
+        // render lines
         _mode = 1;
         drawScene();
     }
