@@ -56,28 +56,47 @@ void Viewer::drawScene()
     } else {
         glViewport(0, 0, _winWidth, _winHeight);
     }
+
     // visualiser le maillage
     if (_mode == 0) glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
     else            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+
     // Activate shader
     _shader.activate();
-    // Uniforms
+
+    // calculate A
     Affine3f A;
     A = Translation3f(_trans.x(), _trans.y(), 0.0) *
         AngleAxisf(_angle.x(), Vector3f(1, 0, 0)) *
         AngleAxisf(_angle.y(), Vector3f(0, 1, 0)) *
         AngleAxisf(_angle.z(), Vector3f(0, 0, 1)) *
         Scaling(_zoom);
+
     // rotate the second viewport
     if (_splitViewPortEnable && _view) A = A * AngleAxisf(M_PI_2, Vector3f(0, 1, 0));
+
+    // l'axe vertical du personnage (0,1,0) soit aligné avec le vecteur (1,1,1) du repère monde.
+    Vector3f v1(0, 1, 0);
+    Vector3f v2(1, 1, 1);
+    v1.normalize();
+    v2.normalize();
+    Vector3f n = v1.cross(v2);
+    float a = std::acos(v1.dot(v2));
+    if (v1.dot(n) < 0) a = -a;
+    A = A * AngleAxisf(a, n);
+
+    // Uniforms
     glUniformMatrix4fv(_shader.getUniformLocation("obj_mat"), 1, GL_FALSE, A.data());
     glUniform1i(_shader.getUniformLocation("mode"),  _mode);
+
     // zoom + translation + viewportSplit (OLD:TD1)
     //glUniform1f(_shader.getUniformLocation("zoom"),  _zoom);
     //glUniform2f(_shader.getUniformLocation("trans"), _trans.x(), _trans.y());
     //glUniform1i(_shader.getUniformLocation("view"),  _view);
+
     // Draw mesh
     _mesh.draw(_shader);
+
     // Deactivate shader
     _shader.deactivate();
 }
