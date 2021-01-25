@@ -4,8 +4,10 @@
 using namespace Eigen;
 
 Viewer::Viewer()
-  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.), _mode(0), _modeEnable(false), _view(0)
+  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.), _angle(0., 0., 0.), _rot(),
+    _mode(0), _modeEnable(false), _view(0), _splitViewPortEnable(false)
 {
+    _rot.setIdentity();
 }
 
 Viewer::~Viewer()
@@ -22,9 +24,9 @@ void Viewer::init(int w, int h){
     if(!_mesh.load(DATA_DIR"/models/lemming.off")) exit(1);
     _mesh.initVBA();
 
-    // clear color TODO TOCHECK
-    glClearColor(.6, .6, .6, 1.);
-    // z-depth TODO TOCHECK LOCATION
+    // clear color
+    glClearColor(.8, .8, .8, 1.);
+    // z-depth
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     glClearDepth(1.);
@@ -48,31 +50,45 @@ void Viewer::reshape(int w, int h){
 void Viewer::drawScene()
 {
     // change view port
-    if (_view == 0) glViewport(0, 0, _winWidth/2, _winHeight);
-    else            glViewport(_winWidth/2, 0, _winWidth/2, _winHeight);
+    if (_splitViewPortEnable) {
+        if (_view == 0) glViewport(0, 0, _winWidth/2, _winHeight);
+        else            glViewport(_winWidth/2, 0, _winWidth/2, _winHeight);
+    } else {
+        glViewport(0, 0, _winWidth, _winHeight);
+    }
     // visualiser le maillage
     if (_mode == 0) glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
     else            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
     // Activate shader
     _shader.activate();
     // Uniforms
-    glUniform1f(_shader.getUniformLocation("zoom"),  _zoom);
-    glUniform2f(_shader.getUniformLocation("trans"), _trans.x(), _trans.y());
+    Affine3f A;
+    A = Translation3f(_trans.x(), _trans.y(), 0.0) *
+        AngleAxisf(_angle.x(), Vector3f(1, 0, 0)) *
+        AngleAxisf(_angle.y(), Vector3f(0, 1, 0)) *
+        AngleAxisf(_angle.z(), Vector3f(0, 0, 1)) *
+        Scaling(_zoom);
+    // rotate the second viewport
+    if (_splitViewPortEnable && _view) A = A * AngleAxisf(M_PI_2, Vector3f(0, 1, 0));
+    glUniformMatrix4fv(_shader.getUniformLocation("obj_mat"), 1, GL_FALSE, A.data());
     glUniform1i(_shader.getUniformLocation("mode"),  _mode);
-    glUniform1i(_shader.getUniformLocation("view"),  _view);
+    // zoom + translation + viewportSplit (OLD:TD1)
+    //glUniform1f(_shader.getUniformLocation("zoom"),  _zoom);
+    //glUniform2f(_shader.getUniformLocation("trans"), _trans.x(), _trans.y());
+    //glUniform1i(_shader.getUniformLocation("view"),  _view);
     // Draw mesh
     _mesh.draw(_shader);
     // Deactivate shader
     _shader.deactivate();
 }
 
-
 void Viewer::updateAndDrawScene()
 {
-    // clear screen TODO TOCHECK
-    glClear(GL_COLOR_BUFFER_BIT);
-    // z-depth clear TODO TOCHECK LOCATION
-    glClear(GL_DEPTH_BUFFER_BIT);
+    // clear screen and z-depth
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // For chair.off
+    //return drawScene2D();
 
     // change view port
     _view = 0;
@@ -85,16 +101,43 @@ void Viewer::updateAndDrawScene()
         drawScene();
     }
 
-    // change view port
-    _view = 1;
-    // render mesh
-    _mode = 0;
-    drawScene();
-    if (_modeEnable) {
-        // render lines
-        _mode = 1;
+    if (_splitViewPortEnable) {
+        // change view port
+        _view = 1;
+        // render mesh
+        _mode = 0;
         drawScene();
+        if (_modeEnable) {
+            // render lines
+            _mode = 1;
+            drawScene();
+        }
     }
+}
+
+void Viewer::drawScene2D()
+{
+    glViewport(0, 0, _winWidth, _winHeight);
+    Affine3f A;
+
+    _shader.activate();
+
+    // first chair
+    A = Translation3f(-.5, -1., 0.) * Scaling(.5f);
+    glUniformMatrix4fv(_shader.getUniformLocation("obj_mat"), 1, GL_FALSE, A.data());
+    _mesh.draw(_shader);
+
+    // second chair
+    A = Translation3f(+.5, -1., 0.) * AngleAxisf(M_PI, Vector3f(0., 1., 0.)) * Scaling(.5f);
+    glUniformMatrix4fv(_shader.getUniformLocation("obj_mat"), 1, GL_FALSE, A.data());
+    _mesh.draw(_shader);
+
+    // third chair : keyboard control with A and D
+    A = Translation3f(0., +.5, 0.) * AngleAxisf(_angle.y(), Vector3f(0., 0., 1.)) * Translation3f(0., -.5, 0.) * Scaling(1.f);
+    glUniformMatrix4fv(_shader.getUniformLocation("obj_mat"), 1, GL_FALSE, A.data());
+    _mesh.draw(_shader);
+
+    _shader.deactivate();
 }
 
 void Viewer::loadShaders()
@@ -123,31 +166,59 @@ void Viewer::keyPressed(int key, int action, int /*mods*/)
   {
     if (key==GLFW_KEY_UP)
     {
-        _trans -= Vector2f(0., .1);
+        _trans += Vector2f(0., .1);
     }
     else if (key==GLFW_KEY_DOWN)
     {
-        _trans += Vector2f(0., .1);
+        _trans -= Vector2f(0., .1);
     }
     else if (key==GLFW_KEY_LEFT)
     {
-        _trans += Vector2f(.1, 0.);
+        _trans -= Vector2f(.1, 0.);
     }
     else if (key==GLFW_KEY_RIGHT)
     {
-        _trans -= Vector2f(.1, 0.);
+        _trans += Vector2f(.1, 0.);
     }
     else if (key==GLFW_KEY_PAGE_UP)
     {
-        _zoom *= 1.1;
+        _zoom /= 1.1;
     }
     else if (key==GLFW_KEY_PAGE_DOWN)
     {
-        _zoom /= 1.1;
+        _zoom *= 1.1;
     }
     else if (key==GLFW_KEY_L)
     {
         _modeEnable = !_modeEnable;
+    }
+    else if (key==GLFW_KEY_K)
+    {
+        _splitViewPortEnable = !_splitViewPortEnable;
+    }
+    else if (key==GLFW_KEY_Q)
+    {
+        _angle += Vector3f(0, 0, M_PI/10);
+    }
+    else if (key==GLFW_KEY_E)
+    {
+        _angle -= Vector3f(0, 0, M_PI/10);
+    }
+    else if (key==GLFW_KEY_A)
+    {
+        _angle += Vector3f(0, M_PI/10, 0);
+    }
+    else if (key==GLFW_KEY_D)
+    {
+        _angle -= Vector3f(0, M_PI/10, 0);
+    }
+    else if (key==GLFW_KEY_W)
+    {
+        _angle += Vector3f(M_PI/10, 0, 0);
+    }
+    else if (key==GLFW_KEY_S)
+    {
+        _angle -= Vector3f(M_PI/10, 0, 0);
     }
   }
 }

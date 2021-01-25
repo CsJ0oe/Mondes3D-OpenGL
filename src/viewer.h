@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+using namespace Eigen;
+
 class Viewer{
 public:
     //! Constructor
@@ -19,6 +21,7 @@ public:
     void init(int w, int h);
     void drawScene();
     void updateAndDrawScene();
+    void drawScene2D();
     void reshape(int w, int h);
     void loadShaders();
 
@@ -37,10 +40,13 @@ private:
     Mesh   _mesh;
 
     float  _zoom;
-    Eigen::Vector2f _trans;
+    Vector2f _trans;
+    Vector3f _angle;
+    Matrix4f _rot;
     int    _mode;
     bool   _modeEnable;
     int    _view;
+    bool _splitViewPortEnable;
 
     // Mouse parameters for the trackball
     enum TrackMode
