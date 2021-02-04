@@ -4,10 +4,9 @@
 using namespace Eigen;
 
 Viewer::Viewer()
-  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.), _angle(0., 0., 0.), _rot(),
+  : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.), _angle(0., 0., 0.),
     _mode(0), _modeEnable(false), _view(0), _splitViewPortEnable(false)
 {
-    _rot.setIdentity();
 }
 
 Viewer::~Viewer()
@@ -35,6 +34,10 @@ void Viewer::init(int w, int h){
 
     reshape(w,h);
     _trackball.setCamera(&_cam);
+
+    // setup camera
+    _cam.lookAt(Vector3f(1, 0, 0), Vector3f(0, 0, 0), Vector3f(0, 1.f, 0));
+    _cam.setPerspective(M_PI_2, 0.1, 10000);
 }
 
 void Viewer::reshape(int w, int h){
@@ -64,8 +67,11 @@ void Viewer::drawScene()
     // Activate shader
     _shader.activate();
 
-    // calculate A
     Affine3f A;
+    Matrix4f B;
+    Matrix4f C;
+
+    // calculate A (trans+rot+scale)
     A = Translation3f(_trans.x(), _trans.y(), 0.0) *
         AngleAxisf(_angle.x(), Vector3f(1, 0, 0)) *
         AngleAxisf(_angle.y(), Vector3f(0, 1, 0)) *
@@ -83,10 +89,19 @@ void Viewer::drawScene()
     Vector3f n = v1.cross(v2);
     float a = std::acos(v1.dot(v2));
     if (v1.dot(n) < 0) a = -a;
-    A = A * AngleAxisf(a, n);
+    //A = A * AngleAxisf(a, n);
+
+    // calculate B (projection)
+    B = _cam.projectionMatrix();
+    //B.setIdentity();
+
+    // calculate C (view)
+    C = _cam.viewMatrix();
 
     // Uniforms
     glUniformMatrix4fv(_shader.getUniformLocation("obj_mat"), 1, GL_FALSE, A.data());
+    glUniformMatrix4fv(_shader.getUniformLocation("prj_mat"), 1, GL_FALSE, B.data());
+    glUniformMatrix4fv(_shader.getUniformLocation("vue_mat"), 1, GL_FALSE, C.data());
     glUniform1i(_shader.getUniformLocation("mode"),  _mode);
 
     // zoom + translation + viewportSplit (OLD:TD1)
@@ -201,11 +216,11 @@ void Viewer::keyPressed(int key, int action, int /*mods*/)
     }
     else if (key==GLFW_KEY_PAGE_UP)
     {
-        _zoom /= 1.1;
+        _zoom -= .1;
     }
     else if (key==GLFW_KEY_PAGE_DOWN)
     {
-        _zoom *= 1.1;
+        _zoom += .1;
     }
     else if (key==GLFW_KEY_L)
     {

@@ -42,7 +42,6 @@ private:
     float  _zoom;
     Vector2f _trans;
     Vector3f _angle;
-    Matrix4f _rot;
     int    _mode;
     bool   _modeEnable;
     int    _view;

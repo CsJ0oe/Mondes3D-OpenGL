@@ -4,6 +4,8 @@ in vec3 vtx_position;
 in vec4 vtx_color;
 out vec4 var_color;
 uniform mat4 obj_mat;
+uniform mat4 prj_mat;
+uniform mat4 vue_mat;
 uniform int mode = 0;
 // zoom + translation (OLD:TD1)
 //uniform float zoom = 1;
@@ -12,9 +14,8 @@ uniform int mode = 0;
 
 void main()
 {
-
-  // position + transform (TD2)
-   gl_Position = obj_mat * vec4(vtx_position.xy, -vtx_position.z, 1.);
+  // position + model(trans+rot+scale) + view + projection
+  gl_Position = prj_mat * vue_mat * obj_mat * vec4(vtx_position, 1.);
 
   // position + viewport (OLD:TD1)
   //if (view == 0)

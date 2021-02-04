@@ -14,7 +14,29 @@ void Camera::lookAt(const Vector3f& position, const Vector3f& target, const Vect
 {
   mTarget = target;
 
-  // TODO
+  // Create a new coordinate system:
+  Vector3f X, Y, Z;
+  Z = (position - target).normalized();
+  X = up.normalized().cross(Z);
+  Y = Z.cross(X);
+
+  // Fill the view matrix
+  mViewMatrix(0,0) = X.x();
+  mViewMatrix(0,1) = X.y();
+  mViewMatrix(0,2) = X.z();
+  mViewMatrix(0,3) = -X.dot(position);
+  mViewMatrix(1,0) = Y.x();
+  mViewMatrix(1,1) = Y.y();
+  mViewMatrix(1,2) = Y.z();
+  mViewMatrix(1,3) = -Y.dot(position);
+  mViewMatrix(2,0) = Z.x();
+  mViewMatrix(2,1) = Z.y();
+  mViewMatrix(2,2) = Z.z();
+  mViewMatrix(2,3) = -Z.dot(position);
+  mViewMatrix(3,0) = position.x();
+  mViewMatrix(3,1) = position.y();
+  mViewMatrix(3,2) = position.z();
+  mViewMatrix(3,3) = 1.0f;
 }
 
 void Camera::setPerspective(float fovY, float near, float far)
@@ -38,7 +60,10 @@ void Camera::zoom(float x)
 
 void Camera::rotateAroundTarget(float angle, Vector3f axis)
 {
-  // TODO
+    Vector3f pos = Vector3f(mViewMatrix(3,0),mViewMatrix(3,1),mViewMatrix(3,2));
+    Vector3f up  = Vector3f(mViewMatrix(1,0),mViewMatrix(1,1),mViewMatrix(1,2));
+    pos = Affine3f(AngleAxisf(-angle, axis)) * (pos-mTarget) + mTarget;
+    lookAt(pos, mTarget, up);
 }
 
 Camera::~Camera()
