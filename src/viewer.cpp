@@ -5,7 +5,7 @@ using namespace Eigen;
 
 Viewer::Viewer()
   : _winWidth(0), _winHeight(0), _zoom(1.), _trans(0., 0.), _angle(0., 0., 0.),
-    _mode(0), _modeEnable(false), _view(0), _splitViewPortEnable(false)
+    _mode(0), _modeEnable(true), _view(0), _splitViewPortEnable(true)
 {
 }
 
@@ -81,7 +81,7 @@ void Viewer::drawScene()
     // rotate the second viewport
     if (_splitViewPortEnable && _view) A = A * AngleAxisf(M_PI_2, Vector3f(0, 1, 0));
 
-    // l'axe vertical du personnage (0,1,0) soit aligné avec le vecteur (1,1,1) du repère monde.
+    /* // l'axe vertical du personnage (0,1,0) soit aligné avec le vecteur (1,1,1) du repère monde.
     Vector3f v1(0, 1, 0);
     Vector3f v2(1, 1, 1);
     v1.normalize();
@@ -89,7 +89,8 @@ void Viewer::drawScene()
     Vector3f n = v1.cross(v2);
     float a = std::acos(v1.dot(v2));
     if (v1.dot(n) < 0) a = -a;
-    //A = A * AngleAxisf(a, n);
+    A = A * AngleAxisf(a, n);
+    */
 
     // calculate B (projection)
     B = _cam.projectionMatrix();
